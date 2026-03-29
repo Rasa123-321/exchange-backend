@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import os
 import psycopg2
 import bcrypt
 import jwt
@@ -8,7 +9,7 @@ from functools import wraps
 
 app = Flask(__name__)
 CORS(app)
-SECRET_KEY = "secret123"
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback_secret")
 
 # --- توکن_required باید اول باشد ---
 def token_required(f):
@@ -152,6 +153,7 @@ def get_transactions(current_user):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+from db_config import get_connection
 
 # --- تست سرور در مرورگر ---
 @app.route("/test", methods=["GET"])
