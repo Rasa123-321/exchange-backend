@@ -158,6 +158,10 @@ def get_transactions(current_user):
 def test_route():
     return "Server is running!"
 
+@app.route("/", methods=["GET"])
+def home():
+    return "Exchange Backend is live!"
+
 # --- اجرای سرور ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
