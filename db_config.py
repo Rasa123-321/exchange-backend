@@ -1,7 +1,7 @@
 import os
 import psycopg2
  
-تنضیمات دیتابس #
+
 def get_connection():
     conn = psycopg2.connect(
         dbname=os.environ.get("DB_NAME"),
