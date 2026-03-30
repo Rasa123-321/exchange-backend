@@ -6,6 +6,7 @@ import jwt
 import datetime
 from flask_cors import CORS
 from functools import wraps
+from db_config import get_connection
 
 
 app = Flask(__name__)
@@ -65,14 +66,7 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     return decorated
 
-# --- اتصال به دیتابیس ---
-def get_connection():
-    return psycopg2.connect(
-        host="localhost",
-        database="exchange_app",
-        user="exchange_user",
-        password="password123"
-    )
+
 
 # --- ثبت نام ---
 @app.route("/register", methods=["POST"])
@@ -191,7 +185,6 @@ def get_transactions(current_user):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-from db_config import get_connection
 
 # --- تست سرور در مرورگر ---
 @app.route("/test", methods=["GET"])
