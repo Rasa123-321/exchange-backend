@@ -7,6 +7,12 @@ import datetime
 from flask_cors import CORS
 from functools import wraps
 
+
+app = Flask(__name__)
+CORS(app)
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback_secret")
+
+
 @app.route("/create_tables", methods=["GET"])
 def create_tables():
     conn = get_connection()
@@ -41,9 +47,6 @@ def create_tables():
 
     return "Tables created successfully!"
 
-app = Flask(__name__)
-CORS(app)
-SECRET_KEY = os.environ.get("SECRET_KEY", "fallback_secret")
 
 # --- توکن_required باید اول باشد ---
 def token_required(f):
