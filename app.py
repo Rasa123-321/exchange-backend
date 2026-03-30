@@ -7,6 +7,40 @@ import datetime
 from flask_cors import CORS
 from functools import wraps
 
+@app.route("/create_tables", methods=["GET"])
+def create_tables():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100),
+        phone VARCHAR(20) UNIQUE,
+        password VARCHAR(255),
+        role VARCHAR(20)
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        amount NUMERIC,
+        currency_from VARCHAR(10),
+        currency_to VARCHAR(10),
+        rate NUMERIC,
+        type VARCHAR(10),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return "Tables created successfully!"
+
 app = Flask(__name__)
 CORS(app)
 SECRET_KEY = os.environ.get("SECRET_KEY", "fallback_secret")
@@ -153,40 +187,6 @@ def get_transactions(current_user):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route("/create_tables", methods=["GET"])
-def create_tables():
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100),
-        phone VARCHAR(20) UNIQUE,
-        password VARCHAR(255),
-        role VARCHAR(20)
-    );
-    """)
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS transactions (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER,
-        amount NUMERIC,
-        currency_from VARCHAR(10),
-        currency_to VARCHAR(10),
-        rate NUMERIC,
-        type VARCHAR(10),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    """)
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return "Tables created successfully!"
 
 from db_config import get_connection
 
