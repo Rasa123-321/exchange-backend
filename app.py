@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import os
-import psycopg2
 import bcrypt
 import jwt
 import datetime
@@ -8,9 +7,9 @@ from flask_cors import CORS
 from functools import wraps
 from db_config import get_connection
 
-
 app = Flask(__name__)
 CORS(app)
+
 SECRET_KEY = os.environ.get("SECRET_KEY", "fallback_secret")
 
 
@@ -49,26 +48,27 @@ def create_tables():
     return "Tables created successfully!"
 
 
-# --- توکن_required باید اول باشد ---
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get("Authorization")
         if not token:
             return jsonify({"error": "Token is missing"}), 401
+
         if token.startswith("Bearer "):
             token = token.split(" ")[1]
+
         try:
             data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
             current_user = data
-        except:
+        except Exception:
             return jsonify({"error": "Invalid token"}), 401
+
         return f(current_user, *args, **kwargs)
+
     return decorated
 
 
-
-# --- ثبت نام ---
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json
@@ -76,29 +76,38 @@ def register():
     phone = data.get("phone")
     password = data.get("password")
     role = data.get("role")
+
     if not all([name, phone, password, role]):
         return jsonify({"error": "All fields are required"}), 400
+
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("INSERT INTO users (name, phone, password, role) VALUES (%s, %s, %s, %s)",
-                    (name, phone, hashed.decode("utf-8"), role))
+        cur.execute(
+            "INSERT INTO users (name, phone, password, role) VALUES (%s, %s, %s, %s)",
+            (name, phone, hashed.decode("utf-8"), role)
+        )
         conn.commit()
         cur.close()
         conn.close()
+
         return jsonify({"message": "User registered successfully"}), 201
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ورود ---
+
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
     phone = data.get("phone")
     password = data.get("password")
+
     if not all([phone, password]):
         return jsonify({"error": "Phone and password required"}), 400
+
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -106,25 +115,33 @@ def login():
         user = cur.fetchone()
         cur.close()
         conn.close()
+
         if user:
             user_id, hashed_password, role = user
             if bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8")):
                 token = jwt.encode(
-                    {"user_id": user_id, "role": role, "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)},
+                    {
+                        "user_id": user_id,
+                        "role": role,
+                        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+                    },
                     SECRET_KEY,
                     algorithm="HS256"
                 )
                 return jsonify({"token": token}), 200
+
         return jsonify({"error": "Invalid phone or password"}), 401
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- افزودن تراکنش ---
+
 @app.route("/transaction", methods=["POST"])
 @token_required
 def add_transaction(current_user):
     if current_user["role"] != "saraf":
         return jsonify({"error": "Access denied"}), 403
+
     data = request.json
     user_id = data.get("user_id")
     amount = data.get("amount")
@@ -132,6 +149,7 @@ def add_transaction(current_user):
     currency_to = data.get("currency_to")
     rate = data.get("rate")
     type_ = data.get("type")
+
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -142,10 +160,11 @@ def add_transaction(current_user):
         conn.commit()
         cur.close()
         conn.close()
+
         return jsonify({"message": "Transaction added"}), 201
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
 @app.route("/transactions", methods=["GET"])
@@ -186,15 +205,15 @@ def get_transactions(current_user):
         return jsonify({"error": str(e)}), 500
 
 
-# --- تست سرور در مرورگر ---
 @app.route("/test", methods=["GET"])
 def test_route():
     return "Server is running!"
+
 
 @app.route("/", methods=["GET"])
 def home():
     return "Exchange Backend is live!"
 
-# --- اجرای سرور ---
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
